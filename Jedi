@@ -1,0 +1,136 @@
+# ANOVA
+library(ggplot2) 
+library(dplyr)    
+
+# Perform one-way ANOVA
+process_A <- c(10, 12, 13, 11, 10, 14, 15, 13)
+process_B <- c(9, 11, 10, 12, 13)
+process_C <- c(11, 10, 15, 14, 12, 13)
+
+observations <- c(process_A, process_B, process_C)
+process <- c(rep("A", length(process_A)), rep("B", length(process_B)), rep("C", length(process_C)))
+
+data <- data.frame(observations, process)
+View(data)
+
+result <- aov(observations ~ process, data = data)
+summary(result)
+
+# Perform two-way ANOVA
+average_daily_gains <- c(
+  1.40, 1.79, 1.72, 1.47, 1.26, 1.28, 1.34, 1.55,  
+  1.31, 1.30, 1.21, 1.08, 1.45, 0.95, 1.26, 1.14,  
+  1.40, 1.47, 1.37, 1.15, 1.22, 1.45, 1.31, 1.27   
+)
+
+outcome_group <- rep(1:3, each = 8)  # Outcome groups
+ration <- rep(c("Ration 1", "Ration 2", "Ration 3", "Ration 4", "Ration 5", "Ration 6", "Ration 7", "Ration 8"), times = 3)  # Rations
+
+data <- data.frame(average_daily_gains, outcome_group, ration)
+result <- aov(average_daily_gains ~ outcome_group + ration, data = data)
+summary(result)
+
+
+# TESTING OF HYPOTHESIS
+# Perform one-sample t-test
+marks <- c(89, 88, 78, 76, 78, 78, 86, 83, 82, 76, 72, 77, 92)
+
+t.test(marks, mu = 80, alternative = "two.sided") #marks less than 80
+t.test(marks, mu = 80, alternative = "greater", conf.level = 0.99) #marks greaer than 80 with 1% los
+
+# Perform two-sample t-test
+yield_A <- c(22, 24, 26, 23, 26, 30, 32, 34)
+yield_B <- c(28, 25, 26, 30, 32, 30, 33, 28, 30, 35)
+
+t.test(yield_A, yield_B, alternative = "two.sided", conf.level = 0.98)
+t.test(yield_A, yield_B, alternative = "less", conf.level = 0.95, mu = -2) # to check if its less than 2 at los 5%
+
+# Perform F-test 
+yield_A <- c(22, 24, 26, 23, 26, 30, 32, 34)
+yield_B <- c(28, 25, 26, 30, 32, 30, 33, 28, 30, 35)
+
+var.test(yield_A, yield_B, alternative = "two.sided", conf.level = 0.98)
+var.test(yield_A, yield_B, alternative = "less", conf.level = 0.95)
+
+
+# LOGISTIC REGRESSION MODEL
+data <- read.csv("titanic.csv")
+head(data)
+names(data)
+summary(data)
+any(is.na(data))
+
+library(ggplot2)
+ggplot(data, aes(Pclass)) + geom_bar(aes(fill = factor(Pclass)), alpha = 0.5)
+ggplot(data, aes(Survived)) + geom_bar(aes(fill = factor(Survived)), alpha = 0.5)
+ggplot(data, aes(Pclass)) + geom_bar(aes(fill = factor(Survived)), alpha = 0.5)
+
+# Building a logistic regression model
+model <- glm(formula = Survived ~ ., family = binomial(link = 'logit'), data = data)
+summary(model)
+prob <- predict(model, type = 'response')
+
+library(gmodels)
+CrossTable(data$Survived, fitted(model) > 0.5)
+
+library(ROCR)
+pred <- prediction(prob, data$Survived)
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+abline(0, 1)
+
+
+# VARIABLE SELECTION METHODS
+library(MASS)
+dat <- read.csv("Z:/Download/dat.csv")
+dat <- dat[, c(6, 2:4, 10, 11)]
+str(dat)
+
+backward_model <- step(lm(Y ~ ., data = dat), direction = "backward")
+forward_model <- step(lm(Y ~ 1, data = dat), direction = "forward", scope = ~ V1 + V2 + V3 + V4 + V5)
+stepwise_model <- step(lm(Y ~ ., data = dat), direction = "both")
+
+print("Backward Stepwise Regression:")
+print(summary(backward_model))
+print("\nForward Stepwise Regression:")
+print(summary(forward_model))
+print("\nStepwise Regression:")
+print(summary(stepwise_model))
+
+# MLR
+library(datasets)
+data("mtcars")
+model <- lm(mpg ~ disp + hp + wt + qsec, data= mtcars)
+
+#linearity
+plot(model$fitted.values, model$residuals,
+     xlab = "Fitted values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted Values")
+abline(h=0,col="blue")
+
+#normality of residuals
+shapiro.test(model$residuals)
+
+qqnorm(model$residuals, 
+       xlab = "Standard Normal Distribution Qunatiles", 
+       ylab = "Sample Quantiles (Residuals)",
+       main = "Q-Q plot of Residuals")
+qqline(model$residuals)
+
+#homoscedasticity
+install.packages("lmtest")
+library(lmtest)
+bptest(model)
+
+#multicollinearity
+library(car)
+vif(model)
+
+#autocorrelation of residuals
+library(lmtest)
+durbinWatsonTest(model)
+
+
+
+
